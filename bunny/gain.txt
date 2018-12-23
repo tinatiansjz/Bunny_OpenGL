@@ -1,0 +1,11 @@
+收获：
+1、 glm版本为9.9，函数内的所有角度都需要改为弧度值 glm::radians(degree)
+    e.g.: glm::perspective(), glm::rotate()
+2、 glm版本为9.9，glm::mat4 model声明得到的初始默认矩阵为零矩阵，
+    需要glm::mat4 model = glm::mat4(1.0f)使其初始化为单位矩阵
+    （尤其是model)
+3、 尤其注意
+    glBufferData(GL_ARRAY_BUFFER, 3*vertices_size*sizeof(GLfloat), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, 3*indices_size*sizeof(GLuint), indices, GL_STATIC_DRAW);
+    glDrawElements(GL_TRIANGLES, 3*indices_size, GL_UNSIGNED_INT, 0);
+    中第二个参数（所画元素个数）

@@ -1,0 +1,21 @@
+CC = g++ -g
+LIBGL = -lGLEW -lglfw3 -lX11 -lXrandr -lXinerama -lXi -lXxf86vm -lXcursor -lGL -lpthread -ldl -lSOIL
+INC = ../Include
+SRC = ../src
+#pattern rule
+.cpp.o:
+	echo rebuilding $*.o from $*.cpp
+	$(CC) -I $(INC) -c $<
+
+all: bunny_bak calNormals
+
+bunny_bak: main_bak.o parser.o parser.h
+	$(CC) -o ./bunny_bak $^ -I $(INC) $(LIBGL)
+calNormals: calNormals.o parser.o parser.h
+	$(CC) -o ./calNormals $^ -I $(INC) $(LIBGL)
+
+# main_bak.o: main_bak.cpp parser.h
+# calNormals.o: calNormals.cpp parser.h
+# parser.o: parser.cpp parser.h
+clean:
+	rm -f *.o bunny_bak calNormals
