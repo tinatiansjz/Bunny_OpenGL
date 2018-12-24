@@ -7,13 +7,16 @@ SRC = ../src
 	echo rebuilding $*.o from $*.cpp
 	$(CC) -I $(INC) -c $<
 
-all: bunny
+all: bunny calNormals
 
 bunny: main.o $(SRC)/glad.o parser.o
 	$(CC) -I $(INC) -o ./bunny $^ $(LIBGL)
+	
+calNormals: calNormals.o parser.o parser.h
+	$(CC) -o ./calNormals $^ -I $(INC) $(LIBGL)
 
-main.o: main.cpp parser.h
-parser.o: parser.cpp parser.h
+#main.o: main.cpp parser.h
+#parser.o: parser.cpp parser.h
 
 clean:
 	rm -f *.o bunny
