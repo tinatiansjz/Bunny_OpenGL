@@ -14,7 +14,8 @@
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-void processInput(GLFWwindow *window);
+// void processInput(GLFWwindow *window);
+void do_movement();
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mode);
 
 // settings
@@ -30,10 +31,10 @@ bool firstMouse = true;
 // timing
 float deltaTime = 0.0f; 
 float lastFrame = 0.0f;
-
+// bunny
+glm::mat4 modelBunny = glm::mat4(1.0f);
 // lighting
 glm::vec3 PointlightPos(0.0f, 15.0f, 0.0f);
-// glm::vec3 PointlightPos(1.2f, 0.0f, 0.25f);
 
 const int MAXPOINT = 40000;
 const int MAXINDEX = 70000;
@@ -42,16 +43,33 @@ const char* normalFile = "bunny_normal.ply2";
 GLfloat vertices[MAXPOINT*6];
 GLuint indices[MAXINDEX*3];
 
+bool keys[1024];
+
 // Attenuation or not (for point lights)
 bool isAttenuation = false;
 bool isFlashlight = false;
-int main(){
+void description(){
     std::cout << "-------------------------------------------------\n";
     std::cout << "Starting GLFW context, OpenGL 3.3\n";
-    std::cout << "L: Attenuation of point light\n";
+    std::cout << "=: Attenuation of point light\n";
     std::cout << "P: Flash light\n";
+    std::cout << "A: Camera moves to the left.\n";
+    std::cout << "D: Camera moves to the right.\n";
+    std::cout << "W: Camera moves forward.\n";
+    std::cout << "S: Camera moves backward.\n";
+    std::cout << "<: Bunny moves left.\n";
+    std::cout << ">: Bunny moves right.\n";
+    std::cout << "J: Bunny rotates left.\n";
+    std::cout << "L: Bunny rotates right.\n";
+    std::cout << "I: Bunny rotates forward.\n";
+    std::cout << "K: Bunny rotates backward.\n";
+    std::cout << "Z: Bunny zooms in.\n";
+    std::cout << "X: Bunny zooms out.\n";
     std::cout << "-------------------------------------------------\n";
+}
+int main(){
     // glfw: initialize and configure
+    description();
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -150,8 +168,8 @@ int main(){
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0); // Note that this is allowed, the call to glVertexAttribPointer registered VBO as the currently bound vertex buffer object so afterwards we can safely unbind
     glBindVertexArray(0); // Unbind VAO (it's always a good thing to unbind any buffer/array to prevent strange bugs), remember: do NOT unbind the EBO, keep it bound to this VAO
-
-
+    //bunny's initial state
+    modelBunny = glm::rotate(modelBunny, glm::radians(135.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     // render loop
     while (!glfwWindowShouldClose(window)){
         // per-frame time logic
@@ -160,8 +178,8 @@ int main(){
         lastFrame = currentFrame;
 
         // input
-        processInput(window);
         glfwSetKeyCallback(window, key_callback);
+        do_movement();
         // render
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -216,10 +234,8 @@ int main(){
         lightingShader.setMat4("view", view);
 
         // world transformation
-        glm::mat4 model = glm::mat4(1.0f);
         // model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.0f, 1.0f, 0.0f));
-        model = glm::rotate(model, glm::radians(135.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-        lightingShader.setMat4("model", model);
+        lightingShader.setMat4("model", modelBunny);
 
         // render the bunny
         glBindVertexArray(bunnyVAO);
@@ -230,7 +246,7 @@ int main(){
         lampShader.use();
         lampShader.setMat4("projection", projection);
         lampShader.setMat4("view", view);
-        model = glm::mat4(1.0f);
+        glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, PointlightPos);
         model = glm::scale(model, glm::vec3(0.4f)); // a smaller cube
         lampShader.setMat4("model", model);
@@ -253,22 +269,44 @@ int main(){
     glfwTerminate();
     return 0;
 }
-
-// process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
-void processInput(GLFWwindow *window){
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+void do_movement(){
+    GLfloat bunnySpeed = 30.0f * deltaTime;
+    if (keys[GLFW_KEY_W])
         camera.ProcessKeyboard(FORWARD, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+    if (keys[GLFW_KEY_S])
         camera.ProcessKeyboard(BACKWARD, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+    if (keys[GLFW_KEY_A])
         camera.ProcessKeyboard(LEFT, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+    if (keys[GLFW_KEY_D])
         camera.ProcessKeyboard(RIGHT, deltaTime);
+    // <- bunny move left
+    if (keys[GLFW_KEY_LEFT])
+        modelBunny = glm::translate(modelBunny, glm::vec3(-bunnySpeed, 0, 0));
+    // -> bunny move right
+    if (keys[GLFW_KEY_RIGHT])
+        modelBunny = glm::translate(modelBunny, glm::vec3(bunnySpeed, 0, 0));
+    // J bunny rotate left
+    if (keys[GLFW_KEY_J])
+        modelBunny = glm::rotate(modelBunny, glm::radians(bunnySpeed), glm::vec3(0.f, 0.f, 1.f));
+    // L bunny rotate right
+    if (keys[GLFW_KEY_L])
+        modelBunny = glm::rotate(modelBunny, glm::radians(-bunnySpeed), glm::vec3(0.f, 0.f, 1.f));
+    // I bunny rotate forward
+    if (keys[GLFW_KEY_I])
+        modelBunny = glm::rotate(modelBunny, glm::radians(-bunnySpeed), glm::vec3(1.f, 0.f, 0.f));
+    // K bunny rotate backward
+    if (keys[GLFW_KEY_K])
+        modelBunny = glm::rotate(modelBunny, glm::radians(bunnySpeed), glm::vec3(1.f, 0.f, 0.f));
+    // Z bunny zooms in
+    if (keys[GLFW_KEY_Z])
+        modelBunny = glm::scale(modelBunny, glm::vec3(1.0f - 0.001f * bunnySpeed, 1.0f - 0.001f * bunnySpeed, 1.0f - 0.001f * bunnySpeed));
+    // X bunny zooms out
+    if (keys[GLFW_KEY_X])
+        modelBunny = glm::scale(modelBunny, glm::vec3(1.0f + 0.001f * bunnySpeed, 1.0f + 0.001f * bunnySpeed, 1.0f + 0.001f * bunnySpeed));
 }
+// process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mode){
-    if (key == GLFW_KEY_L && action == GLFW_PRESS){
+    if (key == GLFW_KEY_EQUAL && action == GLFW_PRESS){
         isAttenuation = !isAttenuation;
         std::cout << "Point light's attenuation is ";
         if(isAttenuation) std::cout << "on.\n";
@@ -279,6 +317,15 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
         std::cout << "Flash light is ";
         if(isFlashlight) std::cout << "on.\n";
         else std::cout << "off.\n";
+    }
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS){
+        glfwSetWindowShouldClose(window, true);
+    }
+    if (key >= 0 && key < 1024){
+        if (action == GLFW_PRESS)
+            keys[key] = true;
+        else if (action == GLFW_RELEASE)
+            keys[key] = false;
     }
 }
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
