@@ -24,8 +24,9 @@ In other folders, there are the source code I collected when I learned OpenGL wi
 * [SOIL](http://www.lonesock.net/soil.html) or [stb_image.h](https://github.com/nothings/stb/blob/master/stb_image.h)
 *  [glm](https://glm.g-truc.net/0.9.8/index.html)
 
-*（Note: The header files mentioned above can be found under ./Include)*
-##How to use my code
+*（Note: The header files mentioned above can be found under ./Include)*  
+  
+## How to use my code
 run the `memo.sh` under ./Bunny_new
 ```bash
 $ bash memo.sh
