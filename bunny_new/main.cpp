@@ -116,6 +116,7 @@ int main(){
     // build and compile our shader zprogram
     Shader lightingShader("bunny.vs", "bunny.fs");
     Shader lampShader("lamp.vs", "lamp.fs");
+    Shader selectShader("select.vs", "select.fs");
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     
@@ -237,8 +238,8 @@ int main(){
 
         // material properties
         //lightingShader.setVec3("material.ambient", 1.0f, 0.5f, 0.31f);
-        lightingShader.setVec3("material.ambient", 1.0f, 0.5f, 0.31f);
-        lightingShader.setVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
+        lightingShader.setVec3("material.ambient", 1.0f, 0.5f, 0.2f);
+        lightingShader.setVec3("material.diffuse", 1.0f, 0.5f, 0.2f);
         lightingShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f); // specular lighting doesn't have full effect on this object's material
         lightingShader.setFloat("material.shininess", 32.0f);
 
@@ -269,6 +270,20 @@ int main(){
         glBindVertexArray(lightVAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
+        //Select Point
+        if (selectedPointIndice <= vertices_size){
+            selectShader.use();
+            glm::vec4 now(modelBunny * glm::vec4(vertices[selectedPointIndice * 6], vertices[selectedPointIndice * 6 + 1], vertices[selectedPointIndice * 6 + 2], 1.f));
+            model = glm::translate(glm::mat4(1.f), glm::vec3(now.x, now.y, now.z));
+            model = glm::scale(model, glm::vec3(0.01f, 0.01f, 0.01f));
+            view = camera.GetViewMatrix();
+            projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
+            selectShader.setMat4("projection", projection);
+            selectShader.setMat4("view", view);
+            selectShader.setMat4("model", model);
+            glBindVertexArray(lightVAO);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -326,12 +341,14 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
         std::cout << "Point light's attenuation is ";
         if(isAttenuation) std::cout << "on.\n";
         else std::cout << "off.\n";
+        std::cout << SPLIT << std::endl;
     }
     if (key == GLFW_KEY_P && action == GLFW_PRESS){
         isFlashlight = !isFlashlight;
         std::cout << "Flash light is ";
         if(isFlashlight) std::cout << "on.\n";
         else std::cout << "off.\n";
+        std::cout << SPLIT << std::endl;
     }
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS){
         glfwSetWindowShouldClose(window, true);
@@ -365,16 +382,18 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height){
 void mouse_callback(GLFWwindow* window, double xpos, double ypos){
     mouseX = xpos;
     mouseY = ypos;
-    if (firstMouse){
+    if(cursorDisabled){
+        if (firstMouse){
+            lastX = xpos;
+            lastY = ypos;
+            firstMouse = false;
+        }
+        float xoffset = xpos - lastX;
+        float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
         lastX = xpos;
         lastY = ypos;
-        firstMouse = false;
+        camera.ProcessMouseMovement(xoffset, yoffset);
     }
-    float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
-    lastX = xpos;
-    lastY = ypos;
-    camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
 // glfw: whenever the mouse scroll wheel scrolls, this callback is called
