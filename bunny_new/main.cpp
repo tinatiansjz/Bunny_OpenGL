@@ -14,9 +14,9 @@
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-// void processInput(GLFWwindow *window);
-void do_movement();
+void mouse_click_callback(GLFWwindow *window, int button, int action, int mods);
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mode);
+void do_movement();
 
 // settings
 const unsigned int SCR_WIDTH = 1000;
@@ -33,23 +33,30 @@ float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 // bunny
 glm::mat4 modelBunny = glm::mat4(1.0f);
+GLuint vertices_size, indices_size;
 // lighting
 glm::vec3 PointlightPos(0.0f, 15.0f, 0.0f);
+
+//Mouse
+GLfloat mouseX = SCR_WIDTH / 2.0;
+GLfloat mouseY = SCR_HEIGHT / 2.0;
+GLuint selectedPointIndice = 0 - 1; // max
 
 const int MAXPOINT = 40000;
 const int MAXINDEX = 70000;
 
 const char* normalFile = "bunny_normal.ply2";
+const char *SPLIT = "--------------------------------------------------------------";
 GLfloat vertices[MAXPOINT*6];
 GLuint indices[MAXINDEX*3];
 
 bool keys[1024];
-
-// Attenuation or not (for point lights)
 bool isAttenuation = false;
 bool isFlashlight = false;
+bool cursorDisabled = true;
+
 void description(){
-    std::cout << "-------------------------------------------------\n";
+    std::cout << SPLIT << std::endl;
     std::cout << "Starting GLFW context, OpenGL 3.3\n";
     std::cout << "=: Attenuation of point light\n";
     std::cout << "P: Flash light\n";
@@ -65,11 +72,10 @@ void description(){
     std::cout << "K: Bunny rotates backward.\n";
     std::cout << "Z: Bunny zooms in.\n";
     std::cout << "X: Bunny zooms out.\n";
-    std::cout << "-------------------------------------------------\n";
+    std::cout << "Tab: Wireframe mode(enable cursor) | default mode(disable cursor)\n";
+    std::cout << SPLIT << std::endl;
 }
-int main(){
-    // glfw: initialize and configure
-    description();
+GLFWwindow* init(){
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -80,11 +86,13 @@ int main(){
     if (window == NULL){
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
-        return -1;
+        exit(EXIT_SUCCESS);
     }
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetKeyCallback(window, key_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetMouseButtonCallback(window, mouse_click_callback);
     glfwSetScrollCallback(window, scroll_callback);
 
     // tell GLFW to capture our mouse
@@ -93,18 +101,24 @@ int main(){
     // glad: load all OpenGL function pointers
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){
         std::cout << "Failed to initialize GLAD" << std::endl;
-        return -1;
+        exit(EXIT_SUCCESS);
     }
 
     // configure global opengl state
     glEnable(GL_DEPTH_TEST);
+    return window;
+}
+int main(){
+    // glfw: initialize and configure
+    description();
+    GLFWwindow* window = init();
 
     // build and compile our shader zprogram
     Shader lightingShader("bunny.vs", "bunny.fs");
     Shader lampShader("lamp.vs", "lamp.fs");
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
-    GLuint vertices_size, indices_size;
+    
     parseNormal(normalFile, vertices, indices, vertices_size, indices_size);
     
     float lightVertices[] = {
@@ -178,8 +192,9 @@ int main(){
         lastFrame = currentFrame;
 
         // input
-        glfwSetKeyCallback(window, key_callback);
         do_movement();
+        if(!cursorDisabled) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        else glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         // render
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -228,7 +243,7 @@ int main(){
         lightingShader.setFloat("material.shininess", 32.0f);
 
         // view/projection transformations
-        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
         glm::mat4 view = camera.GetViewMatrix();
         lightingShader.setMat4("projection", projection);
         lightingShader.setMat4("view", view);
@@ -321,6 +336,16 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS){
         glfwSetWindowShouldClose(window, true);
     }
+    if (key == GLFW_KEY_TAB && action == GLFW_PRESS){
+        if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED){
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+            cursorDisabled = false;
+        }else{
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            cursorDisabled = true;
+            firstMouse = true;
+        }
+    }
     if (key >= 0 && key < 1024){
         if (action == GLFW_PRESS)
             keys[key] = true;
@@ -338,6 +363,8 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height){
 
 // glfw: whenever the mouse moves, this callback is called
 void mouse_callback(GLFWwindow* window, double xpos, double ypos){
+    mouseX = xpos;
+    mouseY = ypos;
     if (firstMouse){
         lastX = xpos;
         lastY = ypos;
@@ -353,4 +380,44 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos){
 // glfw: whenever the mouse scroll wheel scrolls, this callback is called
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset){
     camera.ProcessMouseScroll(yoffset);
+}
+// take points
+void mouse_click_callback(GLFWwindow *window, int button, int action, int mods){
+    if (!cursorDisabled && button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_MOUSE_BUTTON_LEFT){
+        GLfloat xpos = mouseX;
+        GLfloat ypos = mouseY;
+        std::cout << "Screen Position : " << xpos << ' ' << ypos << std::endl;
+        GLfloat minDistance = glm::pow(10, 20);
+        GLuint minIndice = 0 - 1;
+        GLfloat minX, minY;
+        for (int i = 0; i < vertices_size; i++){
+            if (glm::dot(glm::mat3(glm::transpose(glm::inverse(modelBunny))) * \
+            glm::vec3(vertices[6*i+3], vertices[6*i+4], vertices[6*i+5]), camera.Front) < 0){
+                glm::vec4 iPos;
+                glm::mat4 view = camera.GetViewMatrix();
+                glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
+                iPos = modelBunny * glm::vec4(vertices[i*6 + 0], vertices[i*6 + 1], vertices[i*6 + 2], 1.0f);
+                iPos = projection * view * iPos;
+                GLfloat pointPosX = SCR_WIDTH / 2 * (iPos.x / iPos.w) + SCR_WIDTH / 2;
+                // Attention to the negative sign here
+                GLfloat pointPosY = SCR_HEIGHT / 2 * (-iPos.y / iPos.w) + SCR_HEIGHT / 2;
+                if ((pointPosX - xpos) * (pointPosX - xpos) + (pointPosY - ypos) * (pointPosY - ypos) < minDistance){
+                    minDistance = (pointPosX - xpos) * (pointPosX - xpos) + (pointPosY - ypos) * (pointPosY - ypos);
+                    minIndice = i;
+                    minX = pointPosX;
+                    minY = pointPosY;
+                }
+            }
+        }
+        // distance <20
+        if (minDistance < 400){
+            selectedPointIndice = minIndice;
+            std::cout << "The point indice is : " << minIndice << std::endl;
+            std::cout << "The point position is : " << vertices[minIndice * 6 + 0] << ' ' << vertices[minIndice * 6 + 1] << ' ' << vertices[minIndice * 6 + 2] << std::endl;
+            std::cout << "The point screen position is : " << minX << ' ' << minY << std::endl;
+        }else{
+            std::cout << "No point nearby (The distance between the cursor and the nearest point is less than 20 pixels)" << std::endl;
+        }
+        std::cout << SPLIT << std::endl;
+    }
 }
