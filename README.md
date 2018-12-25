@@ -12,7 +12,7 @@ Stanford's Bunny written in OpenGL
 English version
 
 The original data of the experiment is the Bunny data from Stanford University ([./bunny_new/bunny_iH.ply2](bunny_new/bunny_iH.ply2))  
-The codes for Bunny are in the [./bunny_new] (bunny_new) folder.  
+The codes for Bunny are in the [./bunny_new](bunny_new) folder.  
 In other folders, there are the source code I collected when I learned OpenGL with the tutorial (mentioned later). They are also complete projects compiled successfully. Post for readers' reference.
 
 ----------
