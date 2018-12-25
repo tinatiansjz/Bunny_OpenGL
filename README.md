@@ -4,7 +4,7 @@ Stanford's Bunny written in OpenGL
 ![bunny](bunny_new/overview.png)
 
 实验的原始数据为斯坦福大学的Bunny ([./bunny_new/bunny_iH.ply2](bunny_new/bunny_iH.ply2))  
-兔子项目的全部代码在[./bunny_new](bunny_new)文件夹下  
+兔子项目的全部代码在 [./bunny_new](bunny_new) 文件夹下  
 其他文件夹里为我看教程学习OpenGL的源码，同样为编译通过的完整工程，供读者参考
 
 
